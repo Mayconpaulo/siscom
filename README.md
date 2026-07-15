@@ -45,3 +45,8 @@ O SISCOM possui somente dois níveis: `user` para todos os usuários operacionai
 Aplique `supabase/migrations/202607140001_initial_schema.sql` no SQL Editor do Supabase. Para convites, adicione `SUPABASE_SERVICE_ROLE_KEY` ao `.env.local`; essa chave é exclusivamente de servidor e nunca deve ser exposta no navegador.
 
 A trilha de auditoria grava automaticamente criação, edição e exclusão de demandas, identificando usuário, horário e dados alterados.
+
+
+## Publicação
+
+O projeto está conectado ao GitHub e à Vercel para publicações automáticas a partir do ramo main.
