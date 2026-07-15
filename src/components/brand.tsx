@@ -1,0 +1,3 @@
+﻿import { ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
+export function Brand({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) { return <div className="flex items-center gap-3"><div className={cn("grid size-11 place-items-center rounded-xl border", inverse ? "border-white/15 bg-white/10 text-amber-300" : "border-emerald-900/10 bg-emerald-950 text-amber-300")}><ShieldCheck size={24} strokeWidth={1.8}/></div>{!compact && <div><p className={cn("text-lg font-extrabold tracking-[.13em]", inverse ? "text-white" : "text-emerald-950")}>SISCOM</p><p className={cn("text-[9px] font-semibold uppercase tracking-[.17em]", inverse ? "text-emerald-100/60" : "text-slate-500")}>Comunicação Social Integrada</p></div>}</div> }
