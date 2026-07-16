@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Bot, CalendarDays, ChevronLeft, FileImage, FileText, LayoutDashboard, LogOut, Menu, Newspaper, Radio, Settings, Users, X } from "lucide-react";
+import { BarChart3, Bot, CalendarDays, ChevronLeft, FileImage, FileText, LayoutDashboard, LogOut, Menu, Settings, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Brand } from "@/components/brand";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,6 @@ const items = [
   { label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
   { label: "Assistente de Cerimonial", href: "/dashboard/assistente", icon: Bot },
   { label: "Gerador de prismas", href: "/dashboard/ferramentas/prismas", icon: FileImage },
-  { label: "Imprensa", href: "/dashboard/imprensa", icon: Newspaper },
-  { label: "Mídias", href: "/dashboard/midias", icon: Radio },
   { label: "Relatórios", href: "/dashboard/relatorios", icon: BarChart3 },
 ];
 
@@ -43,3 +41,4 @@ export function Sidebar({ isOwner = false }: { isOwner?: boolean }) {
     <div className={cn("hidden transition-all lg:block", compact ? "w-[84px]" : "w-[268px]")} />
   </>;
 }
+
