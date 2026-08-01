@@ -19,5 +19,5 @@ export default async function DashboardLayout({ children }: { children: React.Re
     isOwner = isDesignatedOwner(data.user.email, profile);
     notifications = (notificationData || []) as SiscomNotification[];
   }
-  return <div className="flex min-h-dvh"><Sidebar isOwner={isOwner} notifications={notifications} /><main className="min-w-0 flex-1">{children}</main></div>;
+  return <div className="flex min-h-dvh"><Sidebar isOwner={isOwner} notifications={notifications} /><main className="min-w-0 flex-1 pb-24 lg:pb-0">{children}</main></div>;
 }

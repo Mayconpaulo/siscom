@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin, Plus } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -58,6 +58,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   }
 
   const upcoming = events.filter((event) => new Date(event.ends_at) >= now && event.status !== "cancelado").slice(0, 6);
+  const monthEnd = dayEnd(new Date(year, month + 1, 0));
+  const monthEvents = events
+    .filter((event) => new Date(event.starts_at) <= monthEnd && new Date(event.ends_at) >= start)
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
   const previousMonth = new Date(year, month - 1, 1);
   const nextMonth = new Date(year, month + 1, 1);
   const firstGridKey = key(gridStart);
@@ -65,8 +69,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
 
   return <div className="min-h-dvh bg-slate-50 p-4 pt-20 sm:p-8 lg:pt-8"><div className="mx-auto max-w-7xl">
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-      <div><h1 className="text-3xl font-bold text-slate-950">Agenda operacional</h1><p className="mt-1 text-sm text-slate-500">Eventos, coberturas e compromissos da Comunicação Social.</p></div>
-      <Button asChild className="bg-emerald-950"><Link href="/dashboard/agenda/novo"><Plus size={17} />Nova atividade</Link></Button>
+      <div><h1 className="text-3xl font-bold text-slate-950">Agenda e registros</h1><p className="mt-1 text-sm text-slate-500">Trabalhos realizados e atividades planejadas pela Comunicação Social.</p></div>
+      <div className="grid grid-cols-2 gap-2 sm:flex"><Button asChild className="bg-emerald-950"><Link href="/dashboard/agenda/novo?modo=realizado"><CheckCircle2 size={17} />Registrar realizado</Link></Button><Button asChild variant="outline"><Link href="/dashboard/agenda/novo"><Plus size={17} />Planejar</Link></Button></div>
     </div>
     <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_310px]">
       <Card className="overflow-hidden">
@@ -74,7 +78,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           <div className="flex items-center gap-3"><div className="grid size-10 place-items-center rounded-xl bg-emerald-950 text-amber-300"><CalendarDays size={19} /></div><div><h2 className="font-bold capitalize">{monthNames[month]} de {year}</h2><p className="text-xs text-slate-500">{events.length} atividades no período</p></div></div>
           <div className="flex gap-2"><Link aria-label="Mês anterior" href={monthHref(previousMonth)} className="grid size-9 place-items-center rounded-lg border bg-white"><ChevronLeft size={17} /></Link><Link aria-label="Próximo mês" href={monthHref(nextMonth)} className="grid size-9 place-items-center rounded-lg border bg-white"><ChevronRight size={17} /></Link></div>
         </div>
-        <div className="grid grid-cols-7 border-b bg-slate-50">{weekdays.map((day) => <div key={day} className="p-2 text-center text-[10px] font-bold uppercase text-slate-400 sm:p-3 sm:text-xs">{day}</div>)}</div>
+        <div className="divide-y md:hidden">{monthEvents.length === 0 ? <div className="p-10 text-center"><CalendarDays className="mx-auto mb-3 text-slate-300" /><p className="text-sm text-slate-500">Nenhuma atividade neste mês.</p></div> : monthEvents.map((event) => <Link href={`/dashboard/agenda/${event.id}`} key={event.id} className="flex items-start gap-3 p-4 transition hover:bg-slate-50"><div className="min-w-12 rounded-xl bg-emerald-50 p-2 text-center"><p className="text-[9px] font-bold uppercase text-emerald-700">{monthNames[new Date(event.starts_at).getMonth()].slice(0, 3)}</p><p className="text-lg font-bold text-emerald-950">{new Date(event.starts_at).getDate()}</p></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="text-sm font-bold text-slate-800">{event.title}</p><span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold ${event.status === "concluido" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : event.status === "cancelado" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-200 bg-blue-50 text-blue-700"}`}>{event.status === "concluido" ? "REALIZADO" : event.status === "cancelado" ? "CANCELADO" : "PLANEJADO"}</span></div><p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><Clock3 size={12} />{event.all_day ? "Dia inteiro" : new Date(event.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{key(new Date(event.starts_at)) !== key(new Date(event.ends_at)) && ` até ${new Date(event.ends_at).toLocaleDateString("pt-BR")}`}</p>{(event.responsible_unit || event.location) && <p className="mt-1 flex items-center gap-1 truncate text-xs text-slate-500"><MapPin size={12} />{event.responsible_unit || event.location}</p>}</div><ChevronRight size={16} className="mt-4 shrink-0 text-slate-300" /></Link>)}</div>
+        <div className="hidden md:block"><div className="grid grid-cols-7 border-b bg-slate-50">{weekdays.map((day) => <div key={day} className="p-2 text-center text-[10px] font-bold uppercase text-slate-400 sm:p-3 sm:text-xs">{day}</div>)}</div>
         <div className="grid grid-cols-7">{days.map((date) => {
           const dateKey = key(date);
           const items = eventsForDay(events, date);
@@ -92,7 +97,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               return <Link href={`/dashboard/agenda/${event.id}`} key={event.id} className={`relative z-10 block h-5 truncate border-y px-1.5 py-0.5 text-[9px] font-semibold transition hover:z-20 hover:brightness-95 sm:h-6 sm:text-[11px] ${segmentClasses} ${typeTone[event.event_type]}`} title={`Abrir ${event.title} — ${new Date(event.starts_at).toLocaleDateString("pt-BR")} a ${new Date(event.ends_at).toLocaleDateString("pt-BR")}`}>{label}</Link>;
             })}{items.length > 3 && <p className="text-[9px] font-semibold text-slate-400">+{items.length - 3} atividades</p>}</div>
           </div>;
-        })}</div>
+        })}</div></div>
       </Card>
       <aside><Card className="overflow-hidden"><div className="border-b p-5"><h3 className="font-bold">Próximas atividades</h3><p className="text-xs text-slate-500">Agenda a partir de agora</p></div>{upcoming.length === 0 ? <div className="p-8 text-center"><CalendarDays className="mx-auto mb-3 text-slate-300" /><p className="text-sm text-slate-500">Nenhuma atividade prevista.</p></div> : upcoming.map((event) => <Link href={`/dashboard/agenda/${event.id}`} key={event.id} className="block border-b p-4 transition hover:bg-slate-50 last:border-0"><div className="flex items-start gap-3"><div className="min-w-12 rounded-lg bg-emerald-50 p-2 text-center"><p className="text-[9px] font-bold uppercase text-emerald-700">{monthNames[new Date(event.starts_at).getMonth()].slice(0, 3)}</p><p className="text-lg font-bold text-emerald-950">{new Date(event.starts_at).getDate()}</p></div><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-800">{event.title}</p><p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><Clock3 size={12} />{new Date(event.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{key(new Date(event.starts_at)) !== key(new Date(event.ends_at)) && ` até ${new Date(event.ends_at).toLocaleDateString("pt-BR")}`}</p>{event.location && <p className="mt-1 flex items-center gap-1 truncate text-xs text-slate-500"><MapPin size={12} />{event.location}</p>}</div></div></Link>)}</Card></aside>
     </div>

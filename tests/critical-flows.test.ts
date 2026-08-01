@@ -14,6 +14,7 @@ import { extractBadgeIdentities } from "../src/lib/badge-import";
 import { extractBirthdayPeople } from "../src/lib/birthday-import";
 import { extractReferenceFields } from "../src/lib/reference-extraction";
 import { internalEmailForWarName, normalizeWarName } from "../src/lib/war-name";
+import { detectCommunicationFronts, isWithinPeriod, workPeriodRange } from "../src/lib/work-summary";
 
 test("somente a conta oficial ativa é reconhecida como proprietária", () => {
   assert.equal(isDesignatedOwner(OWNER_EMAIL, { email: OWNER_EMAIL, access_level: "owner", active: true }), true);
@@ -102,4 +103,14 @@ test("auditoria diferencia criação, alteração e conclusão", () => {
   assert.equal(auditActionLabel(completion), "Concluiu demanda");
   assert.equal(isCompletionEvent(completion), true);
   assert.equal(auditSubject(creation), "#1024 — Cobertura da solenidade");
+});
+
+test("resumo de produção identifica frentes e respeita o período selecionado", () => {
+  const fronts = detectCommunicationFronts("Cobertura da formatura", "Fotos tratadas, vídeo editado e link entregue", "Drone empregado");
+  assert.deepEqual(fronts.map((front) => front.label), ["Fotografia", "Vídeo", "Drone", "Links"]);
+
+  const { start, end } = workPeriodRange("mes", new Date("2026-08-20T12:00:00-03:00"));
+  assert.equal(start.getDate(), 1);
+  assert.equal(isWithinPeriod("2026-08-10T15:00:00-03:00", start, end), true);
+  assert.equal(isWithinPeriod("2026-07-31T23:00:00-03:00", start, end), false);
 });
