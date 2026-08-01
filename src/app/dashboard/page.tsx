@@ -36,18 +36,26 @@ export default async function Dashboard({ searchParams }: { searchParams: Dashbo
   let profile: DashboardProfile = { full_name: "Usuário", war_name: "Usuário", rank: "", access_level: "user" };
   let avatarUrl: string | null = null;
   let events: CalendarEvent[] = [];
+  let profiles: Array<{ id: string; full_name: string; war_name: string; rank: string }> = [];
+  const participantsByEvent: Record<string, string[]> = {};
   let databaseError = false;
 
   if (supabase) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       avatarUrl = typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null;
-      const [profileResult, eventsResult] = await Promise.all([
+      const [profileResult, eventsResult, profilesResult] = await Promise.all([
         supabase.from("profiles").select("full_name,war_name,rank,access_level").eq("id", user.id).single(),
         supabase.from("events").select("*").lte("starts_at", end.toISOString()).gte("ends_at", start.toISOString()).order("starts_at", { ascending: true }),
+        supabase.from("profiles").select("id,full_name,war_name,rank").eq("active", true).order("rank").order("war_name"),
       ]);
       if (profileResult.data) profile = profileResult.data;
       events = (eventsResult.data || []) as CalendarEvent[];
+      profiles = profilesResult.data || [];
+      if (events.length) {
+        const { data: participantRows } = await supabase.from("event_participants").select("event_id,profile_id").in("event_id", events.map((event) => event.id));
+        for (const row of participantRows || []) (participantsByEvent[row.event_id] ||= []).push(row.profile_id);
+      }
       databaseError = Boolean(eventsResult.error);
     }
   } else databaseError = true;
@@ -97,7 +105,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Dashbo
           <p className="mt-3 text-[11px] text-slate-400 lg:hidden">Deslize o quadro para o lado e toque na célula que deseja alterar.</p>
         </div>
 
-        <ActivityBoard initialEvents={filteredEvents} />
+        <ActivityBoard initialEvents={filteredEvents} profiles={profiles} initialParticipants={participantsByEvent} />
       </Card>
     </div>
   </div>;

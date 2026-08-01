@@ -5,6 +5,30 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export type EventActionState = { error?: string };
+type SupabaseServerClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
+
+function participantIds(formData: FormData) {
+  try {
+    const parsed = JSON.parse(String(formData.get("participant_ids") || "[]"));
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch { return []; }
+}
+
+async function syncParticipants(supabase: SupabaseServerClient, eventId: string, desiredIds: string[]) {
+  const { data, error } = await supabase.from("event_participants").select("profile_id").eq("event_id", eventId);
+  if (error) return error.message;
+  const currentIds = (data || []).map((item) => item.profile_id);
+  const removeIds = currentIds.filter((id) => !desiredIds.includes(id));
+  const addIds = desiredIds.filter((id) => !currentIds.includes(id));
+  if (removeIds.length) {
+    const result = await supabase.from("event_participants").delete().eq("event_id", eventId).in("profile_id", removeIds);
+    if (result.error) return result.error.message;
+  }
+  if (addIds.length) {
+    const result = await supabase.from("event_participants").insert(addIds.map((profileId) => ({ event_id: eventId, profile_id: profileId })));
+    if (result.error) return result.error.message;
+  }
+}
 
 function eventValues(formData: FormData, userId?: string) {
   const demand = String(formData.get("demand_id") || "");
@@ -39,8 +63,10 @@ export async function createEvent(_: EventActionState, formData: FormData): Prom
   if (!supabase) return { error: "Supabase não configurado." };
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sua sessão expirou." };
-  const { error } = await supabase.from("events").insert(eventValues(formData, user.id));
-  if (error) return { error: error.message };
+  const { data: event, error } = await supabase.from("events").insert(eventValues(formData, user.id)).select("id").single();
+  if (error || !event) return { error: error?.message || "Não foi possível criar a atividade." };
+  const participantError = await syncParticipants(supabase, event.id, participantIds(formData));
+  if (participantError) return { error: participantError };
   revalidatePath("/dashboard/agenda");
   revalidatePath("/dashboard");
   redirect("/dashboard/agenda");
@@ -55,6 +81,8 @@ export async function updateEvent(id: string, _: EventActionState, formData: For
   if (!user) return { error: "Sua sessão expirou." };
   const { error } = await supabase.from("events").update(eventValues(formData)).eq("id", id);
   if (error) return { error: error.message };
+  const participantError = await syncParticipants(supabase, id, participantIds(formData));
+  if (participantError) return { error: participantError };
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/agenda/${id}`);
   revalidatePath("/dashboard");

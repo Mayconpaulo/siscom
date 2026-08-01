@@ -10,9 +10,11 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const supabase = await createClient();
   if (!supabase) notFound();
-  const [{ data: event }, { data: demands }] = await Promise.all([
+  const [{ data: event }, { data: demands }, { data: profiles }, { data: participants }] = await Promise.all([
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
     supabase.from("demands").select("id,protocol,title").neq("status", "concluida").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id,full_name,war_name,rank").eq("active", true).order("rank").order("war_name"),
+    supabase.from("event_participants").select("profile_id").eq("event_id", id),
   ]);
   if (!event) notFound();
   const demandOptions = [...(demands || [])];
@@ -23,6 +25,6 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   return <div className="min-h-dvh bg-slate-50 p-5 pt-20 sm:p-8 lg:pt-8"><div className="mx-auto max-w-3xl">
     <Link href={`/dashboard/agenda/${id}`} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800"><ArrowLeft size={16} />Voltar aos detalhes</Link>
     <h1 className="text-3xl font-bold text-slate-950">Editar atividade</h1><p className="mb-6 mt-2 text-sm text-slate-500">Atualize as informações e salve as alterações no calendário.</p>
-    <Card><CardContent className="p-6"><EventForm demands={demandOptions} event={event as CalendarEvent} /></CardContent></Card>
+    <Card><CardContent className="p-6"><EventForm demands={demandOptions} profiles={profiles || []} participantIds={(participants || []).map((item) => item.profile_id)} event={event as CalendarEvent} /></CardContent></Card>
   </div></div>;
 }

@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!data.user) redirect("/login");
     const [{ data: profile }, { data: notificationData }] = await Promise.all([
       supabase.from("profiles").select("access_level,active,email").eq("id", data.user.id).maybeSingle(),
-      supabase.from("notifications").select("id,user_id,demand_id,kind,title,message,read_at,created_at").eq("user_id", data.user.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("notifications").select("id,user_id,demand_id,event_id,kind,title,message,read_at,created_at").eq("user_id", data.user.id).order("created_at", { ascending: false }).limit(20),
     ]);
     if (!profile?.active) redirect("/login?acesso=inativo");
     isOwner = isDesignatedOwner(data.user.email, profile);

@@ -29,10 +29,16 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
   const event = data as CalendarEvent;
   const workDetails = parseWorkNotes(event.notes);
   const providences = workDetails.providences.length ? workDetails.providences : detectCommunicationFronts(event.title, event.description, event.notes).map((front) => front.label);
-  const [{ data: demand }, { data: creator }] = await Promise.all([
+  const [{ data: demand }, { data: creator }, { data: participantRows }] = await Promise.all([
     event.demand_id ? supabase.from("demands").select("id,protocol,title").eq("id", event.demand_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("profiles").select("full_name,war_name,rank").eq("id", event.created_by).maybeSingle(),
+    supabase.from("event_participants").select("profile_id").eq("event_id", event.id),
   ]);
+  const participantIds = (participantRows || []).map((item) => item.profile_id);
+  const { data: participantProfiles } = participantIds.length
+    ? await supabase.from("profiles").select("id,full_name,war_name,rank").in("id", participantIds)
+    : { data: [] };
+  const participantNames = (participantProfiles || []).map((profile) => profileDisplayName(profile));
 
   return <div className="min-h-dvh bg-slate-50 p-5 pt-20 sm:p-8 lg:pt-8"><div className="mx-auto max-w-4xl">
     <Link href="/dashboard/agenda" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800"><ArrowLeft size={16} />Voltar à agenda</Link>
@@ -50,7 +56,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
           <Info icon={MapPin} label="Local">{event.location || "Não informado"}</Info>
           <Info icon={ShieldCheck} label="Missão / unidade apoiada">{event.responsible_unit || "Não informada"}</Info>
           <Info icon={ListChecks} label="Providências">{providences.join(", ") || "Não informadas"}</Info>
-          <Info icon={Users} label="Militares envolvidos">{workDetails.military || "Não informados"}</Info>
+          <Info icon={Users} label="Militares envolvidos">{participantNames.join(", ") || workDetails.military || "Não informados"}</Info>
         </div>
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_260px]">
           <div className="space-y-5">

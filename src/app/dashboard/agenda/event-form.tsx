@@ -1,14 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { CalendarDays, Clock, MapPin, UsersRound } from "lucide-react";
+import { CalendarDays, Check, Clock, MapPin, UsersRound } from "lucide-react";
 import { createEvent, updateEvent } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CalendarEvent } from "@/lib/types";
+import { profileDisplayName } from "@/lib/profile";
 import { communicationFronts, composeWorkNotes, parseWorkNotes } from "@/lib/work-summary";
 
 type DemandOption = { id: string; protocol: number; title: string };
+type ProfileOption = { id: string; full_name: string; war_name: string; rank: string };
 const initial: { error?: string } = {};
 
 function localDateTime(value?: string) {
@@ -18,24 +20,29 @@ function localDateTime(value?: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function EventForm({ demands, event, mode = "planejado" }: { demands: DemandOption[]; event?: CalendarEvent; mode?: "planejado" | "realizado" }) {
+export function EventForm({ demands, profiles, participantIds = [], event, mode = "planejado" }: { demands: DemandOption[]; profiles: ProfileOption[]; participantIds?: string[]; event?: CalendarEvent; mode?: "planejado" | "realizado" }) {
   const eventAction = event ? updateEvent.bind(null, event.id) : createEvent;
   const [state, action, pending] = useActionState(eventAction, initial);
   const savedDetails = parseWorkNotes(event?.notes);
   const [providences, setProvidences] = useState(savedDetails.providences);
-  const [military, setMilitary] = useState(savedDetails.military);
+  const [selectedParticipants, setSelectedParticipants] = useState(participantIds);
   const [observations, setObservations] = useState(savedDetails.observations);
   const isCompletedMode = mode === "realizado" && !event;
   const currentDateTime = isCompletedMode ? localDateTime(new Date().toISOString()) : "";
-  const structuredNotes = composeWorkNotes({ providences, military, observations });
+  const structuredNotes = composeWorkNotes({ providences, military: savedDetails.military, observations });
 
   function toggleProvidence(label: string) {
     setProvidences((current) => current.includes(label) ? current.filter((item) => item !== label) : [...current, label]);
   }
 
+  function toggleParticipant(id: string) {
+    setSelectedParticipants((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="notes" value={structuredNotes} />
+      <input type="hidden" name="participant_ids" value={JSON.stringify(selectedParticipants)} />
       <div>
         <label className="mb-2 block text-sm font-semibold">Atividade *</label>
         <Input name="title" required minLength={3} defaultValue={event?.title} placeholder="Ex.: Cobertura da formatura geral" />
@@ -88,8 +95,8 @@ export function EventForm({ demands, event, mode = "planejado" }: { demands: Dem
 
       <div>
         <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><UsersRound size={16} />Militares envolvidos</label>
-        <Input value={military} onChange={(event) => setMilitary(event.target.value)} placeholder="Ex.: Paulo Silva, Perluci, Barros e Chagas" />
-        <p className="mt-2 text-xs text-slate-500">Separe os nomes por vírgulas.</p>
+        <div className="grid gap-2 rounded-xl border bg-slate-50 p-3 sm:grid-cols-2">{profiles.map((profile) => { const selected = selectedParticipants.includes(profile.id); return <button type="button" key={profile.id} onClick={() => toggleParticipant(profile.id)} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${selected ? "border-emerald-900 bg-emerald-950 text-white dark:border-amber-300 dark:bg-amber-300 dark:text-emerald-950" : "bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"}`}><span>{profileDisplayName(profile)}</span>{selected && <Check size={14} />}</button>; })}</div>
+        {savedDetails.military && !selectedParticipants.length && <p className="mt-2 text-xs text-amber-700">Registro anterior: {savedDetails.military}. Selecione os usuários cadastrados acima para ativar as notificações.</p>}
       </div>
 
       <div>

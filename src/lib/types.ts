@@ -40,7 +40,8 @@ export interface SiscomNotification {
   id: number;
   user_id: string;
   demand_id: string | null;
-  kind: "demand_assigned";
+  event_id: string | null;
+  kind: "demand_assigned" | "event_assigned" | "event_reminder";
   title: string;
   message: string;
   read_at: string | null;
