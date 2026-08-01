@@ -84,7 +84,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Dashbo
       <div className="hidden items-center gap-3 lg:flex"><div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-emerald-950 text-xs font-bold text-amber-300">{avatarUrl ? <img src={avatarUrl} alt={`Foto de ${profileDisplayName(profile)}`} className="size-full object-cover" /> : profileInitials(profile)}</div><div><p className="text-sm font-semibold text-slate-800">{profileDisplayName(profile)}</p><p className="text-[11px] text-slate-500">{profile.access_level === "owner" ? "Proprietário" : "Usuário"}</p></div></div>
     </header>
 
-    <div className="mx-auto max-w-[1600px] p-4 sm:p-8">
+    <div className="mx-auto max-w-[1600px] px-3 py-4 sm:p-8">
       <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div><p className="text-sm font-semibold text-emerald-800">Comunicação Social</p><h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Atividades, missões e providências</h2><p className="mt-2 text-sm text-slate-500">Clique em qualquer célula para editar. As alterações são salvas automaticamente.</p></div>
         <Button asChild variant="outline" className="w-full sm:w-auto"><Link href="/dashboard/agenda/novo"><Plus size={17} />Abrir formulário completo</Link></Button>
@@ -92,8 +92,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Dashbo
 
       {databaseError && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">Não foi possível carregar as atividades. Tente novamente em alguns instantes.</p>}
 
-      <Card className="overflow-hidden">
-        <div className="border-b bg-white p-4 sm:p-5">
+      <Card className="overflow-hidden border-x-0 sm:border-x">
+        <div className="border-b bg-white p-3 sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex gap-2 overflow-x-auto pb-1">{periods.map((item) => <Link key={item.value} href={filterHref({ periodo: item.value })} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition ${period === item.value ? "border-emerald-950 bg-emerald-950 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}>{item.label}</Link>)}</div>
             <div className="flex gap-2 overflow-x-auto pb-1">{statuses.map((item) => <Link key={item.value} href={filterHref({ situacao: item.value })} className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition ${status === item.value ? "bg-amber-300 text-emerald-950" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{item.label}</Link>)}</div>
@@ -102,7 +102,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Dashbo
             <p className="text-xs text-slate-500"><strong className="text-slate-800">{events.length}</strong> atividades no período · <strong className="text-emerald-700">{completedCount}</strong> realizadas · <strong className="text-blue-700">{plannedCount}</strong> planejadas</p>
             <form className="flex w-full gap-2 lg:max-w-md"><input type="hidden" name="periodo" value={period} /><input type="hidden" name="situacao" value={status} /><label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border bg-slate-50 px-3 text-sm text-slate-500"><Search size={16} /><input name="q" defaultValue={params.q} className="min-w-0 flex-1 bg-transparent text-slate-800 outline-none" placeholder="Buscar atividade, missão ou militar" /></label><Button type="submit" size="sm" variant="outline">Buscar</Button></form>
           </div>
-          <p className="mt-3 text-[11px] text-slate-400 lg:hidden">Deslize o quadro para o lado e toque na célula que deseja alterar.</p>
+          <p className="mt-3 text-[11px] text-slate-400 lg:hidden">Toque em qualquer campo do cartão para editar. As alterações são salvas automaticamente.</p>
         </div>
 
         <ActivityBoard initialEvents={filteredEvents} profiles={profiles} initialParticipants={participantsByEvent} />

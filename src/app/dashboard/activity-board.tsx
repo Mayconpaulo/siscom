@@ -163,7 +163,7 @@ export function ActivityBoard({ initialEvents, profiles, initialParticipants }: 
 
   return <>
     {error && <div className="border-b border-red-200 bg-red-50 px-5 py-3 text-sm text-red-800">{error}</div>}
-    <div className="overflow-x-auto">
+    <div className="hidden overflow-x-auto lg:block">
       <table className="w-full min-w-[1280px] border-collapse text-left">
         <thead className="bg-emerald-950 text-[11px] uppercase tracking-wide text-emerald-50">
           <tr><th className="sticky left-0 z-10 w-[260px] min-w-[260px] bg-emerald-950 px-5 py-4">Atividade</th><th className="w-[150px] px-4 py-4">Missão</th><th className="w-[180px] px-4 py-4">Início</th><th className="w-[180px] px-4 py-4">Término</th><th className="w-[250px] px-4 py-4">Providências</th><th className="w-[250px] px-4 py-4">Militares envolvidos</th><th className="w-[135px] px-4 py-4">Situação</th><th className="w-20 px-3 py-4"><span className="sr-only">Ações</span></th></tr>
@@ -192,6 +192,63 @@ export function ActivityBoard({ initialEvents, profiles, initialParticipants }: 
           })}
         </tbody>
       </table>
+    </div>
+    <div className="space-y-3 bg-slate-50 p-3 dark:bg-slate-950 lg:hidden">
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/70">
+        <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-emerald-900 dark:text-amber-200">Nova atividade</label>
+        <div className="flex min-w-0 items-center gap-2">
+          <Plus size={18} className="shrink-0 text-emerald-800 dark:text-amber-300" />
+          <input aria-label="Nova atividade" value={newTitle} onChange={(event) => setNewTitle(event.target.value)} onBlur={() => void createInlineEvent()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={creating} placeholder="Digite o nome da atividade" className={`${cellInput} min-h-11 flex-1 bg-white font-semibold dark:bg-slate-900`} />
+          {creating && <LoaderCircle size={17} className="shrink-0 animate-spin text-emerald-800 dark:text-amber-300" />}
+        </div>
+      </section>
+
+      {events.length === 0 && !newTitle ? <div className="rounded-2xl border bg-white px-5 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">Nenhuma atividade neste período. Comece pelo campo acima.</div> : events.map((event) => {
+        const details = parseWorkNotes(event.notes);
+        const providences = details.providences;
+        const selectedIds = participants[event.id] || [];
+        const selectedProfiles = profiles.filter((profile) => selectedIds.includes(profile.id));
+        const isSaving = saving.includes(event.id);
+        return <article key={`mobile-${event.id}`} className="min-w-0 overflow-hidden rounded-2xl border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex min-w-0 items-start gap-2 border-b border-slate-100 p-3 dark:border-slate-800">
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Atividade</label>
+              <TextCell value={event.title} placeholder="Atividade" ariaLabel={`Atividade ${event.title}`} onCommit={(title) => { if (title.length >= 3) void savePatch(event.id, { title }); else setError("A atividade precisa ter pelo menos 3 caracteres."); }} />
+              <p className="px-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500">{isSaving ? "Salvando..." : typeLabels[event.event_type]}</p>
+            </div>
+            <Link href={`/dashboard/agenda/${event.id}`} aria-label={`Abrir detalhes de ${event.title}`} className="mt-5 grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-emerald-900 dark:bg-slate-800 dark:text-amber-300"><ChevronRight size={19} /></Link>
+          </div>
+
+          <div className="space-y-4 p-3">
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Missão</label>
+              <TextCell value={event.responsible_unit} placeholder="Adicionar missão" ariaLabel={`Missão de ${event.title}`} onCommit={(responsible_unit) => void savePatch(event.id, { responsible_unit })} />
+            </div>
+
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-slate-400">Início<input aria-label={`Início de ${event.title}`} type="datetime-local" value={localDateTime(event.starts_at)} onChange={(input) => saveStart(event, input.target.value)} className={`${cellInput} mt-1 min-h-11 max-w-full normal-case tracking-normal`} /></label>
+              <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-slate-400">Término<input aria-label={`Término de ${event.title}`} type="datetime-local" value={localDateTime(event.ends_at)} onChange={(input) => saveEnd(event, input.target.value)} className={`${cellInput} mt-1 min-h-11 max-w-full normal-case tracking-normal`} /></label>
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Providências</span><button type="button" onClick={() => setOpenProvidences((current) => current === event.id ? null : event.id)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-dashed border-emerald-700 px-2.5 text-xs font-bold text-emerald-800 dark:border-amber-300 dark:text-amber-300"><Plus size={14} />Adicionar</button></div>
+              <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/70">{providences.length ? providences.map((item) => <span key={item} className="inline-flex max-w-full items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase text-amber-900 dark:bg-amber-300/20 dark:text-amber-200"><span className="truncate">{item}</span><button type="button" onClick={() => updateProvidence(event, item)} aria-label={`Remover ${item}`} className="grid size-5 shrink-0 place-items-center rounded-full"><X size={12} /></button></span>) : <span className="px-1 text-xs text-slate-400">Nenhuma providência adicionada</span>}</div>
+              {openProvidences === event.id && <div className="mt-2 rounded-xl border bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800"><div className="flex flex-wrap gap-1.5">{communicationFronts.map((front) => { const selected = providences.includes(front.label); return <button type="button" key={front.label} onClick={() => updateProvidence(event, front.label)} className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${selected ? "border-emerald-900 bg-emerald-950 text-white dark:border-amber-300 dark:bg-amber-300 dark:text-emerald-950" : "bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"}`}>{selected && <Check size={11} />}{front.label}</button>; })}</div><div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]"><input value={customProvidence[event.id] || ""} onChange={(input) => setCustomProvidence((current) => ({ ...current, [event.id]: input.target.value }))} onKeyDown={(input) => { if (input.key === "Enter") { input.preventDefault(); addCustomProvidence(event); } }} placeholder="Outra providência" className={`${cellInput} min-h-11 border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-900`} /><button type="button" onClick={() => addCustomProvidence(event)} className="min-h-11 rounded-lg bg-emerald-950 px-4 text-xs font-bold text-white dark:bg-amber-300 dark:text-emerald-950">Adicionar</button></div></div>}
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Militares envolvidos</span><button type="button" onClick={() => setOpenMilitary((current) => current === event.id ? null : event.id)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-dashed border-emerald-700 px-2.5 text-xs font-bold text-emerald-800 dark:border-amber-300 dark:text-amber-300"><Plus size={14} />Selecionar</button></div>
+              <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/70">{selectedProfiles.length ? selectedProfiles.map((profile) => <span key={profile.id} className="max-w-full truncate rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200">{profileDisplayName(profile)}</span>) : details.military ? <span className="text-xs text-slate-500 dark:text-slate-300">{details.military}</span> : <span className="px-1 text-xs text-slate-400">Nenhum militar selecionado</span>}</div>
+              {openMilitary === event.id && <div className="mt-2 max-h-64 space-y-1 overflow-y-auto rounded-xl border bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800">{profiles.map((profile) => { const selected = selectedIds.includes(profile.id); return <button type="button" key={profile.id} onClick={() => void toggleParticipant(event, profile.id)} className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold ${selected ? "border-emerald-800 bg-emerald-950 text-white dark:border-amber-300 dark:bg-amber-300 dark:text-emerald-950" : "border-transparent bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200"}`}><span className="min-w-0 truncate">{profileDisplayName(profile)}</span>{selected && <Check size={15} className="shrink-0" />}</button>; })}</div>}
+            </div>
+
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-slate-400">Situação<select aria-label={`Situação de ${event.title}`} value={event.status} onChange={(input) => void savePatch(event.id, { status: input.target.value as EventStatus })} className={`${cellInput} mt-1 min-h-11 font-bold normal-case tracking-normal ${statusTones[event.status]}`}><option value="planejado">Planejada</option><option value="confirmado">Confirmada</option><option value="concluido">Realizada</option><option value="cancelado">Cancelada</option></select></label>
+              <button type="button" onClick={() => void deleteActivity(event)} aria-label={`Excluir ${event.title}`} className="grid size-11 place-items-center rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"><Trash2 size={17} /></button>
+            </div>
+          </div>
+        </article>;
+      })}
     </div>
   </>;
 }
