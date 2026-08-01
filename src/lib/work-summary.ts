@@ -71,8 +71,8 @@ export function activityPeriodRange(period: WorkPeriod, reference = new Date()) 
 }
 
 export function parseWorkNotes(notes = ""): WorkNotesDetails {
-  const providenceMatch = notes.match(/^\[PROVIDENCIAS\]\s*(.*)$/im) || notes.match(/(?:Frentes|Provid[eê]ncias):\s*([^|\n]+)/i);
-  const militaryMatch = notes.match(/^\[MILITARES\]\s*(.*)$/im) || notes.match(/(?:Equipe|Militares):\s*([^|\n]+)/i);
+  const providenceMatch = notes.match(/^\[PROVIDENCIAS\][ \t]*(.*)$/im) || notes.match(/(?:Frentes|Provid[eê]ncias):[ \t]*([^|\n]+)/i);
+  const militaryMatch = notes.match(/^\[MILITARES\][ \t]*(.*)$/im) || notes.match(/(?:Equipe|Militares):[ \t]*([^|\n]+)/i);
   const observationsMarker = notes.match(/\[OBSERVACOES\]\s*/i);
   let observations = observationsMarker && observationsMarker.index !== undefined
     ? notes.slice(observationsMarker.index + observationsMarker[0].length).trim()

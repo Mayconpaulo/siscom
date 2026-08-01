@@ -126,6 +126,11 @@ test("quadro de atividades preserva providências, militares e observações sem
     military: "Paulo Silva, Perluci e Barros",
     observations: "Material entregue à unidade apoiada.",
   });
+  assert.deepEqual(parseWorkNotes(composeWorkNotes({ providences: [], military: "", observations: "" })), {
+    providences: [],
+    military: "",
+    observations: "",
+  });
 
   const { start, end } = activityPeriodRange("mes", new Date("2026-08-20T12:00:00-03:00"));
   assert.equal(start.getDate(), 1);
