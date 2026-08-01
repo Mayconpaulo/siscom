@@ -9,6 +9,7 @@ import {
   validateTemporaryAccess,
 } from "../src/lib/access-control";
 import { readApiResponse } from "../src/lib/api-response";
+import { auditActionLabel, auditSubject, isCompletionEvent } from "../src/lib/audit";
 import { extractBadgeIdentities } from "../src/lib/badge-import";
 import { extractBirthdayPeople } from "../src/lib/birthday-import";
 import { extractReferenceFields } from "../src/lib/reference-extraction";
@@ -90,4 +91,15 @@ test("service worker não armazena páginas privadas nem APIs", async () => {
   assert.doesNotMatch(source, /STATIC_SHELL[^;]*(?:login|dashboard)/);
   assert.match(source, /!url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(source, /!url\.pathname\.startsWith\("\/dashboard"\)/);
+});
+
+test("auditoria diferencia criação, alteração e conclusão", () => {
+  const creation = { action: "INSERT", entity_type: "demand", entity_id: "demand-1", details: { title: "Cobertura da solenidade", protocol: 1024 } };
+  const update = { action: "UPDATE", entity_type: "event", details: { title: "Formatura", previous_status: "planejado", status: "confirmado" } };
+  const completion = { action: "UPDATE", entity_type: "demand", details: { title: "Cobertura da solenidade", previous_status: "em_andamento", status: "concluida" } };
+  assert.equal(auditActionLabel(creation), "Criou demanda");
+  assert.equal(auditActionLabel(update), "Alterou atividade da agenda");
+  assert.equal(auditActionLabel(completion), "Concluiu demanda");
+  assert.equal(isCompletionEvent(completion), true);
+  assert.equal(auditSubject(creation), "#1024 — Cobertura da solenidade");
 });
