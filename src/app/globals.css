@@ -1,0 +1,43 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root { --background: 210 25% 97%; --foreground: 155 45% 10%; --card: 0 0% 100%; --card-foreground: 155 45% 10%; --primary: 155 62% 14%; --primary-foreground: 45 90% 94%; --muted: 210 22% 94%; --muted-foreground: 215 14% 43%; --border: 210 18% 88%; }
+.dark { --background: 220 24% 8%; --foreground: 210 22% 92%; --card: 220 20% 11%; --card-foreground: 210 22% 92%; --primary: 43 84% 65%; --primary-foreground: 155 62% 12%; --muted: 218 18% 16%; --muted-foreground: 215 15% 67%; --border: 218 17% 22%; }
+* { border-color: hsl(var(--border)); }
+html { background: hsl(var(--background)); }
+body { color: hsl(var(--foreground)); background: hsl(var(--background)); font-feature-settings: "cv02","cv03","cv04","cv11"; }
+::selection { background: #f9d66a; color: #0b3324; }
+@media (display-mode: standalone) { body { user-select: none; } }
+
+.badge-print-root { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 10mm; }
+  html, body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .badge-print-root, .badge-print-root * { visibility: visible !important; }
+  .badge-print-root { display: block !important; position: absolute; inset: 0; width: 190mm; }
+  .badge-print-sheet { display: flex; align-content: flex-start; align-items: flex-start; flex-wrap: wrap; gap: 4mm; width: 190mm; height: 277mm; overflow: hidden; break-after: page; page-break-after: always; }
+  .badge-print-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .badge-print-item, .badge-face { break-inside: avoid; page-break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+
+@layer utilities {
+  .dark .bg-white { background-color: hsl(var(--card)) !important; }
+  .dark .bg-slate-50 { background-color: hsl(var(--background)) !important; }
+  .dark .bg-slate-50\/70 { background-color: hsl(var(--muted) / .7) !important; }
+  .dark .bg-slate-100 { background-color: hsl(var(--muted)) !important; }
+  .dark .bg-slate-200 { background-color: hsl(var(--border)) !important; }
+  .dark .text-slate-950,
+  .dark .text-slate-900,
+  .dark .text-slate-800,
+  .dark .text-slate-700 { color: hsl(var(--foreground)) !important; }
+  .dark .text-slate-600,
+  .dark .text-slate-500,
+  .dark .text-slate-400 { color: hsl(var(--muted-foreground)) !important; }
+  .dark .hover\:bg-slate-50:hover { background-color: hsl(var(--muted)) !important; }
+  .dark .hover\:bg-muted:hover { background-color: hsl(var(--muted)) !important; }
+  .dark input,
+  .dark select,
+  .dark textarea { color: hsl(var(--foreground)); }
+}
