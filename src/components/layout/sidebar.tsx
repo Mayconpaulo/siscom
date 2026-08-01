@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bot, CakeSlice, CalendarDays, CheckCircle2, ChevronLeft, FileClock, FileImage, FileText, IdCard, LayoutDashboard, LogOut, Menu, ScrollText, Settings, Users, X } from "lucide-react";
+import { Bot, CakeSlice, CalendarDays, ChevronLeft, FileClock, FileImage, FileText, IdCard, LayoutDashboard, LogOut, Menu, ScrollText, Settings, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Brand } from "@/components/brand";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
@@ -35,10 +35,10 @@ export function Sidebar({ isOwner = false, notifications = [] }: { isOwner?: boo
     <NotificationsBell initialNotifications={notifications} mobile />
     <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 items-end rounded-2xl border border-white/20 bg-emerald-950 px-2 pb-[max(.45rem,env(safe-area-inset-bottom))] pt-2 text-white shadow-2xl lg:hidden" aria-label="Navegação principal">
       <Link href="/dashboard" className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70", active("/dashboard") && "text-amber-300")}><LayoutDashboard size={19} /><span>Início</span></Link>
-      <Link href="/dashboard/demandas" className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70", active("/dashboard/demandas") && "text-amber-300")}><FileText size={19} /><span>Demandas</span></Link>
-      <Link href="/dashboard/agenda/novo?modo=realizado" className="relative -mt-7 flex min-w-0 flex-col items-center gap-1 text-[10px] font-bold text-amber-300" aria-label="Registrar trabalho realizado"><span className="grid size-14 place-items-center rounded-2xl border-4 border-slate-50 bg-amber-300 text-emerald-950 shadow-lg"><CheckCircle2 size={24} /></span><span>Registrar</span></Link>
+      <Link href="/dashboard/crachas" className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70", active("/dashboard/crachas") && "text-amber-300")}><IdCard size={19} /><span>Crachás</span></Link>
+      <button onClick={() => setOpen(true)} className="relative -mt-7 flex min-w-0 flex-col items-center gap-1 text-[10px] font-bold text-amber-300" aria-label="Abrir menu completo"><span className="grid size-14 place-items-center rounded-2xl border-4 border-slate-50 bg-amber-300 text-emerald-950 shadow-lg"><Menu size={24} /></span><span>Menu</span></button>
       <Link href="/dashboard/agenda" className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70", active("/dashboard/agenda") && "text-amber-300")}><CalendarDays size={19} /><span>Agenda</span></Link>
-      <button onClick={() => setOpen(true)} className="flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70" aria-label="Abrir menu completo"><Menu size={19} /><span>Menu</span></button>
+      <Link href="/dashboard/ferramentas/prismas" className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-semibold text-emerald-100/70", active("/dashboard/ferramentas/prismas") && "text-amber-300")}><FileImage size={19} /><span>Prismas</span></Link>
     </nav>
     {open && <button aria-label="Fechar menu" className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} />}
     <aside className={cn("fixed inset-y-0 left-0 z-40 flex flex-col bg-emerald-950 text-white transition-all duration-300 lg:translate-x-0", open ? "translate-x-0" : "-translate-x-full", compact ? "w-[84px]" : "w-[268px]")}>

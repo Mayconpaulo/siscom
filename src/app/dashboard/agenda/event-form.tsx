@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { useActionState, useState } from "react";
+import { CalendarDays, Clock, MapPin, UsersRound } from "lucide-react";
 import { createEvent, updateEvent } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CalendarEvent } from "@/lib/types";
+import { communicationFronts, composeWorkNotes, parseWorkNotes } from "@/lib/work-summary";
 
 type DemandOption = { id: string; protocol: number; title: string };
 const initial: { error?: string } = {};
@@ -20,14 +21,24 @@ function localDateTime(value?: string) {
 export function EventForm({ demands, event, mode = "planejado" }: { demands: DemandOption[]; event?: CalendarEvent; mode?: "planejado" | "realizado" }) {
   const eventAction = event ? updateEvent.bind(null, event.id) : createEvent;
   const [state, action, pending] = useActionState(eventAction, initial);
+  const savedDetails = parseWorkNotes(event?.notes);
+  const [providences, setProvidences] = useState(savedDetails.providences);
+  const [military, setMilitary] = useState(savedDetails.military);
+  const [observations, setObservations] = useState(savedDetails.observations);
   const isCompletedMode = mode === "realizado" && !event;
   const currentDateTime = isCompletedMode ? localDateTime(new Date().toISOString()) : "";
+  const structuredNotes = composeWorkNotes({ providences, military, observations });
+
+  function toggleProvidence(label: string) {
+    setProvidences((current) => current.includes(label) ? current.filter((item) => item !== label) : [...current, label]);
+  }
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-6">
+      <input type="hidden" name="notes" value={structuredNotes} />
       <div>
-        <label className="mb-2 block text-sm font-semibold">{isCompletedMode ? "Trabalho realizado" : "Título"} *</label>
-        <Input name="title" required minLength={3} defaultValue={event?.title} placeholder={isCompletedMode ? "Ex.: Cobertura da formatura geral" : "Ex.: Cobertura da solenidade de formatura"} />
+        <label className="mb-2 block text-sm font-semibold">Atividade *</label>
+        <Input name="title" required minLength={3} defaultValue={event?.title} placeholder="Ex.: Cobertura da formatura geral" />
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -58,13 +69,36 @@ export function EventForm({ demands, event, mode = "planejado" }: { demands: Dem
       </label>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
+          <label className="mb-2 block text-sm font-semibold">Missão / unidade apoiada</label>
+          <Input name="responsible_unit" defaultValue={event?.responsible_unit} placeholder="Ex.: EBST, Formatura ou 1ª Cia" />
+        </div>
+        <div>
           <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><MapPin size={15} />Local</label>
           <Input name="location" defaultValue={event?.location} placeholder="Ex.: Pátio de formaturas" />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-semibold">{isCompletedMode ? "Missão / unidade apoiada" : "Unidade responsável"}</label>
-          <Input name="responsible_unit" defaultValue={event?.responsible_unit} placeholder={isCompletedMode ? "Ex.: EBST, Formatura ou 1ª Cia" : "Ex.: Comunicação Social"} />
-        </div>
+      </div>
+
+      <fieldset>
+        <legend className="mb-2 block text-sm font-semibold">Providências / frentes empregadas</legend>
+        <div className="flex flex-wrap gap-2">{communicationFronts.map((front) => {
+          const selected = providences.includes(front.label);
+          return <button type="button" key={front.label} aria-pressed={selected} onClick={() => toggleProvidence(front.label)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${selected ? "border-emerald-900 bg-emerald-950 text-white" : "bg-white text-slate-600 hover:border-emerald-500"}`}>{front.label}</button>;
+        })}</div>
+      </fieldset>
+
+      <div>
+        <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><UsersRound size={16} />Militares envolvidos</label>
+        <Input value={military} onChange={(event) => setMilitary(event.target.value)} placeholder="Ex.: Paulo Silva, Perluci, Barros e Chagas" />
+        <p className="mt-2 text-xs text-slate-500">Separe os nomes por vírgulas.</p>
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-semibold">O que foi produzido ou entregue</label>
+        <textarea name="description" rows={4} defaultValue={event?.description} placeholder="Ex.: Fotografias selecionadas e tratadas, vídeo editado e link entregue à unidade apoiada." className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
+      </div>
+      <div>
+        <label className="mb-2 block text-sm font-semibold">Observações internas</label>
+        <textarea rows={3} value={observations} onChange={(event) => setObservations(event.target.value)} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
       </div>
       <div>
         <label className="mb-2 block text-sm font-semibold">Demanda relacionada</label>
@@ -73,18 +107,9 @@ export function EventForm({ demands, event, mode = "planejado" }: { demands: Dem
           {demands.map((demand) => <option key={demand.id} value={demand.id}>#{demand.protocol} — {demand.title}</option>)}
         </select>
       </div>
-      <div>
-        <label className="mb-2 block text-sm font-semibold">{isCompletedMode ? "O que foi produzido ou entregue" : "Descrição"}</label>
-        <textarea name="description" rows={4} defaultValue={event?.description} placeholder={isCompletedMode ? "Ex.: Fotografias selecionadas e tratadas, vídeo editado e link entregue à unidade apoiada." : undefined} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
-      </div>
-      <div>
-        <label className="mb-2 block text-sm font-semibold">{isCompletedMode ? "Equipe e frentes empregadas" : "Observações internas"}</label>
-        <textarea name="notes" rows={3} defaultValue={event?.notes} placeholder={isCompletedMode ? "Equipe: Paulo Silva, Perluci e Barros | Frentes: Foto, vídeo e drone" : undefined} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
-        {isCompletedMode && <p className="mt-2 text-xs text-slate-500">Use os nomes das frentes no texto para que elas apareçam automaticamente no resumo do painel.</p>}
-      </div>
       {state.error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{state.error}</p>}
       <div className="flex justify-end">
-        <Button disabled={pending} className="w-full bg-emerald-950 sm:w-auto">{pending ? "Salvando..." : event ? "Salvar alterações" : isCompletedMode ? "Registrar trabalho" : "Cadastrar atividade"}</Button>
+        <Button disabled={pending} className="w-full bg-emerald-950 sm:w-auto">{pending ? "Salvando..." : event ? "Salvar alterações" : "Cadastrar atividade"}</Button>
       </div>
     </form>
   );

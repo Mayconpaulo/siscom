@@ -1,5 +1,11 @@
 export type WorkPeriod = "semana" | "mes" | "30dias";
 
+export type WorkNotesDetails = {
+  providences: string[];
+  military: string;
+  observations: string;
+};
+
 export type CommunicationFront = {
   label: string;
   tone: string;
@@ -39,6 +45,60 @@ export function workPeriodRange(period: WorkPeriod, reference = new Date()) {
   }
 
   return { start, end };
+}
+
+export function activityPeriodRange(period: WorkPeriod, reference = new Date()) {
+  const start = new Date(reference);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(reference);
+  end.setHours(23, 59, 59, 999);
+
+  if (period === "semana") {
+    const mondayOffset = (start.getDay() + 6) % 7;
+    start.setDate(start.getDate() - mondayOffset);
+    end.setTime(start.getTime());
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+  } else if (period === "mes") {
+    start.setDate(1);
+    end.setFullYear(start.getFullYear(), start.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+  } else {
+    start.setDate(start.getDate() - 29);
+  }
+
+  return { start, end };
+}
+
+export function parseWorkNotes(notes = ""): WorkNotesDetails {
+  const providenceMatch = notes.match(/^\[PROVIDENCIAS\]\s*(.*)$/im) || notes.match(/(?:Frentes|Provid[eê]ncias):\s*([^|\n]+)/i);
+  const militaryMatch = notes.match(/^\[MILITARES\]\s*(.*)$/im) || notes.match(/(?:Equipe|Militares):\s*([^|\n]+)/i);
+  const observationsMarker = notes.match(/\[OBSERVACOES\]\s*/i);
+  let observations = observationsMarker && observationsMarker.index !== undefined
+    ? notes.slice(observationsMarker.index + observationsMarker[0].length).trim()
+    : notes
+      .replace(/^\[PROVIDENCIAS\].*$/gim, "")
+      .replace(/^\[MILITARES\].*$/gim, "")
+      .replace(/(?:Equipe|Militares):\s*[^|\n]+\|?/gi, "")
+      .replace(/(?:Frentes|Provid[eê]ncias):\s*[^|\n]+\|?/gi, "")
+      .trim();
+
+  if (/^\[OBSERVACOES\]/im.test(observations)) observations = observations.replace(/^\[OBSERVACOES\]\s*/im, "").trim();
+
+  return {
+    providences: (providenceMatch?.[1] || "").split(",").map((item) => item.trim()).filter(Boolean),
+    military: militaryMatch?.[1]?.trim() || "",
+    observations,
+  };
+}
+
+export function composeWorkNotes(details: WorkNotesDetails) {
+  return [
+    `[PROVIDENCIAS] ${details.providences.join(", ")}`,
+    `[MILITARES] ${details.military.trim()}`,
+    "[OBSERVACOES]",
+    details.observations.trim(),
+  ].join("\n").trim();
 }
 
 export function isWithinPeriod(value: string, start: Date, end: Date) {

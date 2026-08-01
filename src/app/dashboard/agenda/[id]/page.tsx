@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock3, FileText, MapPin, Pencil, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock3, FileText, ListChecks, MapPin, Pencil, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { profileDisplayName } from "@/lib/profile";
 import type { CalendarEvent, EventStatus, EventType } from "@/lib/types";
+import { detectCommunicationFronts, parseWorkNotes } from "@/lib/work-summary";
 
 const typeLabels: Record<EventType, string> = { solenidade: "Solenidade", reuniao: "Reunião", entrevista: "Entrevista", cobertura: "Cobertura", visita: "Visita", outro: "Outro" };
 const statusLabels: Record<EventStatus, string> = { planejado: "Planejado", confirmado: "Confirmado", concluido: "Concluído", cancelado: "Cancelado" };
@@ -26,6 +27,8 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
   const { data } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!data) notFound();
   const event = data as CalendarEvent;
+  const workDetails = parseWorkNotes(event.notes);
+  const providences = workDetails.providences.length ? workDetails.providences : detectCommunicationFronts(event.title, event.description, event.notes).map((front) => front.label);
   const [{ data: demand }, { data: creator }] = await Promise.all([
     event.demand_id ? supabase.from("demands").select("id,protocol,title").eq("id", event.demand_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("profiles").select("full_name,war_name,rank").eq("id", event.created_by).maybeSingle(),
@@ -45,12 +48,14 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
           <Info icon={CalendarDays} label="Início">{dateTime(event.starts_at)}</Info>
           <Info icon={Clock3} label="Término">{dateTime(event.ends_at)}</Info>
           <Info icon={MapPin} label="Local">{event.location || "Não informado"}</Info>
-          <Info icon={Users} label="Unidade responsável">{event.responsible_unit || "Não informada"}</Info>
+          <Info icon={ShieldCheck} label="Missão / unidade apoiada">{event.responsible_unit || "Não informada"}</Info>
+          <Info icon={ListChecks} label="Providências">{providences.join(", ") || "Não informadas"}</Info>
+          <Info icon={Users} label="Militares envolvidos">{workDetails.military || "Não informados"}</Info>
         </div>
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_260px]">
           <div className="space-y-5">
             <section><h2 className="mb-2 flex items-center gap-2 font-bold text-slate-900"><FileText size={17} />Descrição</h2><p className="whitespace-pre-wrap rounded-xl border bg-white p-4 text-sm leading-6 text-slate-600">{event.description || "Nenhuma descrição informada."}</p></section>
-            <section><h2 className="mb-2 flex items-center gap-2 font-bold text-slate-900"><ShieldCheck size={17} />Observações internas</h2><p className="whitespace-pre-wrap rounded-xl border bg-amber-50/50 p-4 text-sm leading-6 text-slate-600">{event.notes || "Nenhuma observação registrada."}</p></section>
+            <section><h2 className="mb-2 flex items-center gap-2 font-bold text-slate-900"><ShieldCheck size={17} />Observações internas</h2><p className="whitespace-pre-wrap rounded-xl border bg-amber-50/50 p-4 text-sm leading-6 text-slate-600">{workDetails.observations || "Nenhuma observação registrada."}</p></section>
           </div>
           <aside className="space-y-4 rounded-xl border bg-slate-50 p-4 text-sm">
             <div><p className="text-xs font-bold uppercase text-slate-400">Demanda relacionada</p>{demand ? <Link href="/dashboard/demandas" className="mt-1 block font-semibold text-emerald-800">#{demand.protocol} — {demand.title}</Link> : <p className="mt-1 text-slate-500">Nenhuma</p>}</div>
