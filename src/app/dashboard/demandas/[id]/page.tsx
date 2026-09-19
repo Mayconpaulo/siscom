@@ -4,16 +4,14 @@ import { ArrowLeft, CalendarClock, CheckCircle2, Clock3, FileText, History, Penc
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import type { Demand, DemandComment, DemandHistory, DemandPriority, DemandStatus } from "@/lib/types";
+import { profileDisplayName } from "@/lib/profile";
+import type { Demand, DemandComment, DemandHistory } from "@/lib/types";
 import { CommentForm } from "./comment-form";
+import { CompletionCheckbox } from "../completion-checkbox";
 
-const statusLabel: Record<DemandStatus, string> = { aberta: "Aberta", em_andamento: "Em andamento", concluida: "Concluída", cancelada: "Cancelada" };
-const statusTone: Record<DemandStatus, string> = { aberta: "bg-amber-100 text-amber-800", em_andamento: "bg-blue-100 text-blue-800", concluida: "bg-emerald-100 text-emerald-800", cancelada: "bg-slate-200 text-slate-600" };
-const priorityLabel: Record<DemandPriority, string> = { baixa: "Baixa", normal: "Normal", alta: "Alta", urgente: "Urgente" };
-const priorityTone: Record<DemandPriority, string> = { baixa: "bg-slate-100 text-slate-600", normal: "bg-blue-50 text-blue-700", alta: "bg-orange-100 text-orange-800", urgente: "bg-red-100 text-red-800" };
 const fieldLabels: Record<string, string> = { title: "título", description: "descrição", requesting_unit: "unidade solicitante", priority: "prioridade", status: "situação", due_at: "prazo", assigned_to: "responsável" };
-type Profile = { id: string; full_name: string; rank: string };
-function profileName(profile?: Profile) { return profile ? `${profile.rank ? `${profile.rank}. ` : ""}${profile.full_name}` : "Não definido"; }
+type Profile = { id: string; full_name: string; war_name: string; rank: string };
+function profileName(profile?: Profile) { return profile ? profileDisplayName(profile) : "Não definido"; }
 function changedFields(item: DemandHistory) { if (item.event === "INSERT") return "Demanda criada"; const previous = item.previous_data || {}, next = item.new_data || {}; const changed = Object.keys(fieldLabels).filter((field) => JSON.stringify(previous[field as keyof Demand]) !== JSON.stringify(next[field as keyof Demand])).map((field) => fieldLabels[field]); return changed.length ? `Alterou: ${changed.join(", ")}` : "Demanda atualizada"; }
 
 export default async function DemandDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +20,7 @@ export default async function DemandDetailsPage({ params }: { params: Promise<{ 
   if (!supabase) notFound();
   const [{ data: demandData }, { data: profilesData }, { data: historyData }, { data: commentsData }, { data: eventsData }] = await Promise.all([
     supabase.from("demands").select("*").eq("id", id).maybeSingle(),
-    supabase.from("profiles").select("id,full_name,rank").order("full_name"),
+    supabase.from("profiles").select("id,full_name,war_name,rank").order("war_name"),
     supabase.from("demand_history").select("*").eq("demand_id", id).order("created_at", { ascending: false }).limit(40),
     supabase.from("demand_comments").select("*").eq("demand_id", id).order("created_at", { ascending: false }),
     supabase.from("events").select("id,title,starts_at,status").eq("demand_id", id).order("starts_at", { ascending: false }).limit(5),
@@ -36,7 +34,7 @@ export default async function DemandDetailsPage({ params }: { params: Promise<{ 
   const overdue = demand.due_at && new Date(demand.due_at) < new Date() && !["concluida", "cancelada"].includes(demand.status);
 
   return <div className="min-h-dvh bg-slate-50 p-5 pt-20 sm:p-8 lg:pt-8"><div className="mx-auto max-w-6xl"><Link href="/dashboard/demandas" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800"><ArrowLeft size={16} />Voltar às demandas</Link>
-    <Card className="overflow-hidden"><div className="border-b bg-emerald-950 p-6 text-white sm:p-8"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start"><div><div className="mb-3 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">#{demand.protocol}</span><span className={`rounded-full px-3 py-1 text-xs font-bold ${statusTone[demand.status]}`}>{statusLabel[demand.status]}</span><span className={`rounded-full px-3 py-1 text-xs font-bold ${priorityTone[demand.priority]}`}>{priorityLabel[demand.priority]}</span>{overdue && <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">Prazo vencido</span>}</div><h1 className="text-2xl font-bold sm:text-3xl">{demand.title}</h1><p className="mt-2 text-sm text-emerald-100/70">Solicitante: {demand.requesting_unit}</p></div><Button asChild className="shrink-0 bg-amber-300 text-emerald-950 hover:bg-amber-200"><Link href={`/dashboard/demandas/${id}/editar`}><Pencil size={16} />Editar demanda</Link></Button></div></div>
+    <Card className="overflow-hidden"><div className="border-b bg-emerald-950 p-6 text-white sm:p-8"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start"><div><div className="mb-3 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">#{demand.protocol}</span>{overdue && <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">Prazo vencido</span>}</div><h1 className="text-2xl font-bold sm:text-3xl">{demand.title}</h1></div><div className="flex flex-col items-start gap-3 sm:items-end"><div className="rounded-xl bg-white px-3 py-1 text-emerald-950"><CompletionCheckbox demandId={id} initialCompleted={demand.status === "concluida"} compact /></div><Button asChild className="shrink-0 bg-amber-300 text-emerald-950 hover:bg-amber-200"><Link href={`/dashboard/demandas/${id}/editar`}><Pencil size={16} />Editar demanda</Link></Button></div></div></div>
       <CardContent className="p-5 sm:p-8"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-xl border bg-slate-50 p-4"><UserRound className="mb-3 text-emerald-800" size={19} /><p className="text-[10px] font-bold uppercase text-slate-400">Responsável</p><p className="mt-1 text-sm font-semibold">{profileName(profileMap.get(demand.assigned_to || ""))}</p></div><div className="rounded-xl border bg-slate-50 p-4"><CalendarClock className="mb-3 text-emerald-800" size={19} /><p className="text-[10px] font-bold uppercase text-slate-400">Prazo</p><p className={`mt-1 text-sm font-semibold ${overdue ? "text-red-700" : ""}`}>{demand.due_at ? new Date(demand.due_at).toLocaleString("pt-BR") : "Sem prazo definido"}</p></div><div className="rounded-xl border bg-slate-50 p-4"><Users className="mb-3 text-emerald-800" size={19} /><p className="text-[10px] font-bold uppercase text-slate-400">Criada por</p><p className="mt-1 text-sm font-semibold">{profileName(profileMap.get(demand.created_by))}</p></div><div className="rounded-xl border bg-slate-50 p-4"><Clock3 className="mb-3 text-emerald-800" size={19} /><p className="text-[10px] font-bold uppercase text-slate-400">Última atualização</p><p className="mt-1 text-sm font-semibold">{new Date(demand.updated_at).toLocaleString("pt-BR")}</p></div></div>
         <section className="mt-6"><h2 className="mb-2 flex items-center gap-2 font-bold"><FileText size={18} />Descrição da demanda</h2><p className="whitespace-pre-wrap rounded-xl border bg-white p-5 text-sm leading-6 text-slate-600">{demand.description}</p></section>
       </CardContent></Card>

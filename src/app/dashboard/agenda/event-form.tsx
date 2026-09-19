@@ -1,13 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { useActionState, useState } from "react";
+import { CalendarDays, Check, Clock, MapPin, UsersRound } from "lucide-react";
 import { createEvent, updateEvent } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CalendarEvent } from "@/lib/types";
+import { profileDisplayName } from "@/lib/profile";
+import { communicationFronts, composeWorkNotes, parseWorkNotes } from "@/lib/work-summary";
 
 type DemandOption = { id: string; protocol: number; title: string };
+type ProfileOption = { id: string; full_name: string; war_name: string; rank: string };
 const initial: { error?: string } = {};
 
 function localDateTime(value?: string) {
@@ -17,26 +20,43 @@ function localDateTime(value?: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function EventForm({ demands, event }: { demands: DemandOption[]; event?: CalendarEvent }) {
+export function EventForm({ demands, profiles, participantIds = [], event, mode = "planejado" }: { demands: DemandOption[]; profiles: ProfileOption[]; participantIds?: string[]; event?: CalendarEvent; mode?: "planejado" | "realizado" }) {
   const eventAction = event ? updateEvent.bind(null, event.id) : createEvent;
   const [state, action, pending] = useActionState(eventAction, initial);
+  const savedDetails = parseWorkNotes(event?.notes);
+  const [providences, setProvidences] = useState(savedDetails.providences);
+  const [selectedParticipants, setSelectedParticipants] = useState(participantIds);
+  const [observations, setObservations] = useState(savedDetails.observations);
+  const isCompletedMode = mode === "realizado" && !event;
+  const currentDateTime = isCompletedMode ? localDateTime(new Date().toISOString()) : "";
+  const structuredNotes = composeWorkNotes({ providences, military: savedDetails.military, observations });
+
+  function toggleProvidence(label: string) {
+    setProvidences((current) => current.includes(label) ? current.filter((item) => item !== label) : [...current, label]);
+  }
+
+  function toggleParticipant(id: string) {
+    setSelectedParticipants((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-6">
+      <input type="hidden" name="notes" value={structuredNotes} />
+      <input type="hidden" name="participant_ids" value={JSON.stringify(selectedParticipants)} />
       <div>
-        <label className="mb-2 block text-sm font-semibold">Título *</label>
-        <Input name="title" required minLength={3} defaultValue={event?.title} placeholder="Ex.: Cobertura da solenidade de formatura" />
+        <label className="mb-2 block text-sm font-semibold">Atividade *</label>
+        <Input name="title" required minLength={3} defaultValue={event?.title} placeholder="Ex.: Cobertura da formatura geral" />
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm font-semibold">Tipo</label>
-          <select name="event_type" defaultValue={event?.event_type || "solenidade"} className="h-11 w-full rounded-lg border bg-white px-3.5 text-sm">
+          <select name="event_type" defaultValue={event?.event_type || (isCompletedMode ? "cobertura" : "solenidade")} className="h-11 w-full rounded-lg border bg-white px-3.5 text-sm">
             <option value="solenidade">Solenidade</option><option value="reuniao">Reunião</option><option value="entrevista">Entrevista</option><option value="cobertura">Cobertura</option><option value="visita">Visita</option><option value="outro">Outro</option>
           </select>
         </div>
         <div>
           <label className="mb-2 block text-sm font-semibold">Situação</label>
-          <select name="status" defaultValue={event?.status || "planejado"} className="h-11 w-full rounded-lg border bg-white px-3.5 text-sm">
+          <select name="status" defaultValue={event?.status || (isCompletedMode ? "concluido" : "planejado")} className="h-11 w-full rounded-lg border bg-white px-3.5 text-sm">
             <option value="planejado">Planejado</option><option value="confirmado">Confirmado</option><option value="concluido">Concluído</option><option value="cancelado">Cancelado</option>
           </select>
         </div>
@@ -44,11 +64,11 @@ export function EventForm({ demands, event }: { demands: DemandOption[]; event?:
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><CalendarDays size={15} />Início *</label>
-          <Input name="starts_at" type="datetime-local" required defaultValue={localDateTime(event?.starts_at)} />
+          <Input name="starts_at" type="datetime-local" required defaultValue={localDateTime(event?.starts_at) || currentDateTime} />
         </div>
         <div>
           <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><Clock size={15} />Término *</label>
-          <Input name="ends_at" type="datetime-local" required defaultValue={localDateTime(event?.ends_at)} />
+          <Input name="ends_at" type="datetime-local" required defaultValue={localDateTime(event?.ends_at) || currentDateTime} />
         </div>
       </div>
       <label className="flex items-center gap-2 text-sm">
@@ -56,13 +76,36 @@ export function EventForm({ demands, event }: { demands: DemandOption[]; event?:
       </label>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
+          <label className="mb-2 block text-sm font-semibold">Missão / unidade apoiada</label>
+          <Input name="responsible_unit" defaultValue={event?.responsible_unit} placeholder="Ex.: EBST, Formatura ou 1ª Cia" />
+        </div>
+        <div>
           <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><MapPin size={15} />Local</label>
           <Input name="location" defaultValue={event?.location} placeholder="Ex.: Pátio de formaturas" />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-semibold">Unidade responsável</label>
-          <Input name="responsible_unit" defaultValue={event?.responsible_unit} placeholder="Ex.: Comunicação Social" />
-        </div>
+      </div>
+
+      <fieldset>
+        <legend className="mb-2 block text-sm font-semibold">Providências / frentes empregadas</legend>
+        <div className="flex flex-wrap gap-2">{communicationFronts.map((front) => {
+          const selected = providences.includes(front.label);
+          return <button type="button" key={front.label} aria-pressed={selected} onClick={() => toggleProvidence(front.label)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${selected ? "border-emerald-900 bg-emerald-950 text-white" : "bg-white text-slate-600 hover:border-emerald-500"}`}>{front.label}</button>;
+        })}</div>
+      </fieldset>
+
+      <div>
+        <label className="mb-2 flex items-center gap-2 text-sm font-semibold"><UsersRound size={16} />Militares envolvidos</label>
+        <div className="grid gap-2 rounded-xl border bg-slate-50 p-3 sm:grid-cols-2">{profiles.map((profile) => { const selected = selectedParticipants.includes(profile.id); return <button type="button" key={profile.id} onClick={() => toggleParticipant(profile.id)} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition ${selected ? "border-emerald-900 bg-emerald-950 text-white dark:border-amber-300 dark:bg-amber-300 dark:text-emerald-950" : "bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"}`}><span>{profileDisplayName(profile)}</span>{selected && <Check size={14} />}</button>; })}</div>
+        {savedDetails.military && !selectedParticipants.length && <p className="mt-2 text-xs text-amber-700">Registro anterior: {savedDetails.military}. Selecione os usuários cadastrados acima para ativar as notificações.</p>}
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-semibold">O que foi produzido ou entregue</label>
+        <textarea name="description" rows={4} defaultValue={event?.description} placeholder="Ex.: Fotografias selecionadas e tratadas, vídeo editado e link entregue à unidade apoiada." className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
+      </div>
+      <div>
+        <label className="mb-2 block text-sm font-semibold">Observações internas</label>
+        <textarea rows={3} value={observations} onChange={(event) => setObservations(event.target.value)} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
       </div>
       <div>
         <label className="mb-2 block text-sm font-semibold">Demanda relacionada</label>
@@ -71,17 +114,9 @@ export function EventForm({ demands, event }: { demands: DemandOption[]; event?:
           {demands.map((demand) => <option key={demand.id} value={demand.id}>#{demand.protocol} — {demand.title}</option>)}
         </select>
       </div>
-      <div>
-        <label className="mb-2 block text-sm font-semibold">Descrição</label>
-        <textarea name="description" rows={4} defaultValue={event?.description} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
-      </div>
-      <div>
-        <label className="mb-2 block text-sm font-semibold">Observações internas</label>
-        <textarea name="notes" rows={3} defaultValue={event?.notes} className="w-full rounded-lg border bg-white p-3.5 text-sm outline-none focus:border-emerald-700" />
-      </div>
       {state.error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{state.error}</p>}
       <div className="flex justify-end">
-        <Button disabled={pending} className="bg-emerald-950">{pending ? "Salvando..." : event ? "Salvar alterações" : "Cadastrar atividade"}</Button>
+        <Button disabled={pending} className="w-full bg-emerald-950 sm:w-auto">{pending ? "Salvando..." : event ? "Salvar alterações" : "Cadastrar atividade"}</Button>
       </div>
     </form>
   );

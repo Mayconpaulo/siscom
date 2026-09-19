@@ -14,4 +14,3 @@ export async function POST(request: Request) {
   if (!profile?.active) return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
   return NextResponse.json({ email: profile.email });
 }
-

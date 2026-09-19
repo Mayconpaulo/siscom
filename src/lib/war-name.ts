@@ -18,4 +18,3 @@ export function internalEmailForWarName(value: string) {
 export function isInternalSiscomEmail(value: string) {
   return value.toLowerCase().endsWith(`@${SISCOM_LOGIN_DOMAIN}`);
 }
-

@@ -1,6 +1,6 @@
 # SISCOM
 
-Sistema Integrado da Seção de Comunicação Social. Sprint 0.1: fundação técnica, autenticação, dashboard, navegação responsiva e PWA.
+Sistema Integrado da Seção de Comunicação Social, de propriedade de Paulo Silva. Aplicação operacional para gestão de demandas, agenda e ferramentas da Seção de Comunicação Social.
 
 ## Stack
 
@@ -23,6 +23,13 @@ Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` no `.env.l
 
 - `/login`: autenticação institucional
 - `/dashboard`: área protegida e visão operacional
+- `/dashboard/demandas`: cadastro e acompanhamento de demandas
+- `/dashboard/agenda`: agenda operacional
+- `/dashboard/crachas`: criação e impressão de crachás em folhas A4
+- `/dashboard/assistente`: assistente de cerimonial
+- `/dashboard/ferramentas`: geradores operacionais
+- `/dashboard/configuracoes`: perfil, foto e aparência
+- `/dashboard/usuarios`: gestão de usuários, exclusiva do proprietário
 
 ## Critérios entregues — Sprint 0.1
 
@@ -46,7 +53,25 @@ Aplique `supabase/migrations/202607140001_initial_schema.sql` no SQL Editor do S
 
 A trilha de auditoria grava automaticamente criação, edição e exclusão de demandas, identificando usuário, horário e dados alterados.
 
+## Perfis e configurações
+
+O tratamento de todos os usuários no SISCOM é composto por posto/graduação + nome de guerra. O nome completo é mantido somente para controle administrativo. A área de Configurações permite editar os dados pessoais, adicionar uma foto de perfil e escolher entre os temas claro, escuro ou automático.
+
+Para habilitar nomes de guerra obrigatórios e fotos de perfil, aplique também `supabase/migrations/202607200001_profile_settings.sql`.
+
+## Demandas e notificações
+
+Todas as demandas são visíveis para os usuários autenticados. Na listagem, as atribuídas ao usuário atual aparecem primeiro e podem ser filtradas por `Todas`, `Minhas`, `Pendentes` e `Concluídas`. A conclusão é controlada por checkbox.
+
+Para ativar as notificações internas de atribuição, aplique `supabase/migrations/202607200002_demand_notifications.sql`. O aviso aparece no sino do SISCOM assim que o responsável entra no sistema.
+
+
+## Gerador de crachás
+
+A área de Crachás permite definir as medidas físicas, os textos superior e inferior, nome, identidade, quantidade de cópias e as cores das quatro faixas. O sistema calcula automaticamente o limite por folha A4 e oferece impressão somente da frente ou de frente e verso unidos para dobra. Os formatos militar (85 × 52 mm) e obra (95 × 68 mm) estão disponíveis como atalhos. O brasão institucional original é apenas redimensionado.
 
 ## Publicação
 
-O projeto está conectado ao GitHub e à Vercel para publicações automáticas a partir do ramo main.
+O projeto está conectado ao GitHub e à Vercel para publicações automáticas a partir do ramo `main`.
+
+Acesso: https://siscom-snowy.vercel.app/login

@@ -15,4 +15,3 @@ export default async function FirstAccessPage() {
   if (profile.profile_completed && !profile.must_change_password) redirect("/dashboard");
   return <main className="min-h-dvh bg-slate-50 p-5 sm:p-8"><div className="mx-auto max-w-2xl"><Brand /><section className="mt-8 rounded-3xl border bg-white p-6 shadow-sm sm:p-9"><p className="text-xs font-bold uppercase tracking-[.18em] text-emerald-700">Primeiro acesso</p><h1 className="mt-2 text-3xl font-bold text-slate-950">Complete seu cadastro</h1><p className="mb-7 mt-2 text-sm leading-6 text-slate-500">Antes de acessar o SISCOM, confirme seus dados e substitua a senha temporária por uma senha pessoal.</p><FirstAccessForm warName={profile.war_name} /></section></div></main>;
 }
-

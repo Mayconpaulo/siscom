@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isInternalSiscomEmail } from "@/lib/war-name";
+import { normalizeAccountEmail, validateFirstAccess } from "@/lib/access-control";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -13,12 +13,10 @@ export async function POST(request: Request) {
   const body = await request.json();
   const fullName = String(body.full_name || "").trim();
   const rank = String(body.rank || "").trim();
-  const email = String(body.email || "").trim().toLowerCase();
+  const email = normalizeAccountEmail(String(body.email || ""));
   const password = String(body.password || "");
-  if (fullName.length < 5) return NextResponse.json({ error: "Informe seu nome completo." }, { status: 400 });
-  if (!rank) return NextResponse.json({ error: "Informe sua graduação." }, { status: 400 });
-  if (!/^\S+@\S+\.\S+$/.test(email) || isInternalSiscomEmail(email)) return NextResponse.json({ error: "Informe um e-mail válido." }, { status: 400 });
-  if (password.length < 8) return NextResponse.json({ error: "A nova senha deve ter pelo menos 8 caracteres." }, { status: 400 });
+  const validationError = validateFirstAccess({ fullName, rank, email, password });
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
 
   const { data: duplicate } = await admin.from("profiles").select("id").ilike("email", email).neq("id", user.id).maybeSingle();
   if (duplicate) return NextResponse.json({ error: "Este e-mail já está vinculado a outro usuário." }, { status: 409 });
@@ -35,4 +33,3 @@ export async function POST(request: Request) {
   await admin.from("audit_log").insert({ actor_id: user.id, action: "COMPLETE_FIRST_ACCESS", entity_type: "profile", entity_id: user.id, details: { war_name: profile.war_name } });
   return NextResponse.json({ message: "Cadastro concluído com sucesso." });
 }
-

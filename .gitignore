@@ -1,0 +1,22 @@
+node_modules/
+.next/
+.vercel/
+.vercel-local/
+.npm-cache-vercel/
+.npm-cache*/
+
+.env
+.env.*
+!.env.example
+
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Arquivos locais de trabalho e inspeção
+.agents/
+.codex/
+tmp/
+tmp-*/
+tmp-*.docx

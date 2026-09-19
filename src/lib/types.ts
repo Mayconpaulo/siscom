@@ -36,6 +36,18 @@ export interface DemandComment {
   created_at: string;
 }
 
+export interface SiscomNotification {
+  id: number;
+  user_id: string;
+  demand_id: string | null;
+  event_id: string | null;
+  kind: "demand_assigned" | "event_assigned" | "event_reminder";
+  title: string;
+  message: string;
+  read_at: string | null;
+  created_at: string;
+}
+
 export type EventType = "solenidade" | "reuniao" | "entrevista" | "cobertura" | "visita" | "outro";
 export type EventStatus = "planejado" | "confirmado" | "concluido" | "cancelado";
 export interface CalendarEvent {

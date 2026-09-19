@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { searchCeremonialKnowledge } from "@/lib/ceremonial-knowledge";
+import { getCeremonialDocument, searchCeremonialKnowledge } from "@/lib/ceremonial-knowledge";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type AssistantPayload = {
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const references = sources.map((source, index) => `FONTE ${index + 1}\nDocumento: ${source.source}\nPágina: ${source.page}\n${source.content}`).join("\n\n---\n\n");
   const history = (body?.history || []).slice(-8).map((message) => `${message.role === "user" ? "USUÁRIO" : "ASSISTENTE"}: ${message.content.slice(0, 1600)}`).join("\n");
   const input = `HISTÓRICO:\n${history || "Sem histórico."}\n\nPERGUNTA ATUAL:\n${question}\n\nREFERÊNCIAS NUMERADAS:\n${references}`;
-  const instructions = `Você é o auxiliar operacional de cerimonial militar do SISCOM. Responda em português do Brasil usando somente as referências fornecidas. Seja direto: comece pela orientação prática, em frases curtas, sem introdução teórica, sem explicar sua metodologia e sem citações no texto. Nunca escreva o nome do manual ou a página dentro de answer; isso será exibido separadamente pela interface.
+  const instructions = `Você é o Assistente Militar do SISCOM. Responda em português do Brasil usando somente as referências fornecidas. Seja direto: comece pela orientação prática, em frases curtas, sem introdução teórica, sem explicar sua metodologia e sem citações no texto. Nunca escreva o nome do manual ou a página dentro de answer; isso será exibido separadamente pela interface.
 
 Quando houver dados suficientes, diga exatamente o que fazer. Para posicionamento, informe a ordem e deixe claro o ponto de vista. Se houver quantidade de pessoas, aplique o dispositivo par ou ímpar. Se nomes ou postos forem informados, use-os nas posições. Quando só houver a quantidade, forneça um modelo por antiguidade (mais antigo, segundo mais antigo etc.) sem pedir nomes.
 
@@ -98,6 +98,12 @@ source_indexes deve conter apenas os números das referências que realmente fun
     needsClarification: result.needs_clarification,
     followUpQuestion: result.follow_up_question,
     diagram: result.diagram.kind === "line" && result.diagram.positions.length > 0 ? result.diagram : null,
-    sources: selected.map((source) => ({ source: source.source, page: source.page, url: `/api/manuais/${source.documentId}#page=${source.page}` })),
+    sources: selected.map((source) => {
+      const document = getCeremonialDocument(source.documentId);
+      const url = document?.externalUrl
+        ? `${document.externalUrl}?page=${source.page}`
+        : `/api/manuais/${source.documentId}#page=${source.page}`;
+      return { source: source.source, page: source.page, url };
+    }),
   });
 }

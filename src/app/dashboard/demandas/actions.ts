@@ -12,9 +12,9 @@ function values(formData: FormData) {
   return {
     title: String(formData.get("title") || "").trim(),
     description: String(formData.get("description") || "").trim(),
-    requesting_unit: String(formData.get("requesting_unit") || "").trim(),
-    priority: String(formData.get("priority") || "normal"),
-    status: String(formData.get("status") || "aberta"),
+    requesting_unit: String(formData.get("requesting_unit") || "").trim() || "Comunicação Social",
+    priority: "normal",
+    status: formData.get("completed") === "on" ? "concluida" : "aberta",
     due_at: dueAt ? new Date(dueAt).toISOString() : null,
     assigned_to: assignedTo || null,
   };
@@ -22,7 +22,7 @@ function values(formData: FormData) {
 
 function validate(formData: FormData) {
   const data = values(formData);
-  if (data.title.length < 3 || !data.description || !data.requesting_unit) return "Preencha título, unidade solicitante e descrição.";
+  if (data.title.length < 3 || !data.description) return "Preencha o título e a descrição.";
 }
 
 export async function createDemand(_: DemandActionState, formData: FormData): Promise<DemandActionState> {
@@ -49,6 +49,17 @@ export async function updateDemand(id: string, _: DemandActionState, formData: F
   if (error) return { error: error.message };
   revalidatePath("/dashboard/demandas"); revalidatePath(`/dashboard/demandas/${id}`); revalidatePath("/dashboard");
   redirect(`/dashboard/demandas/${id}`);
+}
+
+export async function setDemandCompleted(id: string, completed: boolean): Promise<DemandActionState> {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase não configurado." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sua sessão expirou." };
+  const { error } = await supabase.from("demands").update({ status: completed ? "concluida" : "aberta" }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/demandas"); revalidatePath(`/dashboard/demandas/${id}`); revalidatePath("/dashboard");
+  return { success: true };
 }
 
 export async function addDemandComment(id: string, _: DemandActionState, formData: FormData): Promise<DemandActionState> {

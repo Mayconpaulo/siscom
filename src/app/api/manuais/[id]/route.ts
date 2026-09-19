@@ -13,6 +13,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params;
   const document = getCeremonialDocument(id);
   if (!document) return NextResponse.json({ error: "Manual não encontrado." }, { status: 404 });
+  if (document.externalUrl) return NextResponse.redirect(document.externalUrl);
+  if (!document.fileName) return NextResponse.json({ error: "Arquivo do manual não encontrado." }, { status: 404 });
 
   const filePath = path.join(process.cwd(), "src", "data", "manuals", document.fileName);
   const file = await readFile(filePath);

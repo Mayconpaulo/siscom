@@ -23,6 +23,7 @@ export function PrismaGenerator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [ready, setReady] = useState(false);
+  const [templateError, setTemplateError] = useState("");
   const [quantity, setQuantity] = useState<1 | 2>(2);
   const [names, setNames] = useState(["CAP LUCAS MENDES", "CAP LUCAS MENDES"]);
   const [roles, setRoles] = useState(["CHEFE 3ª SEÇÃO", "CHEFE 3ª SEÇÃO"]);
@@ -31,7 +32,8 @@ export function PrismaGenerator() {
   useEffect(() => {
     const image = new Image();
     image.src = "/prisma-template.png";
-    image.onload = () => { imageRef.current = image; setReady(true); };
+    image.onload = () => { imageRef.current = image; setReady(true); setTemplateError(""); };
+    image.onerror = () => setTemplateError("Não foi possível carregar o modelo do prisma. Atualize a página e tente novamente.");
   }, []);
 
   const draw = useCallback(() => {
@@ -77,7 +79,7 @@ export function PrismaGenerator() {
     if (quantity === 1) {
       writePrisma(paperX, Math.round((canvas.height - prismaHeight) / 2), paperWidth, prismaHeight, names[0], roles[0]);
     } else {
-      const sheetGap = 4;
+      const sheetGap = 0;
       const top = Math.round((canvas.height - prismaHeight * 2 - sheetGap) / 2);
       writePrisma(paperX, top, paperWidth, prismaHeight, names[0], roles[0]);
       writePrisma(paperX, top + prismaHeight + sheetGap, paperWidth, prismaHeight, names[1], roles[1]);
@@ -109,9 +111,10 @@ export function PrismaGenerator() {
       <section className="mt-5 rounded-xl border p-4"><h2 className="font-bold text-slate-900">Ajustes finos</h2><p className="mt-1 text-xs text-slate-500">Os ajustes valem para todos os prismas da folha.</p>{([
         ["nameSize", "Tamanho do nome", 30, 70], ["roleSize", "Tamanho da função", 22, 54], ["offsetX", "Ajuste horizontal", -80, 80], ["offsetY", "Ajuste vertical", -50, 50], ["gap", "Espaço entre nome e função", 34, 75],
       ] as [keyof FineTuning, string, number, number][]).map(([field, label, min, max]) => <div key={field} className="mt-4"><div className="mb-1.5 flex items-center justify-between"><label className="text-xs font-bold uppercase text-slate-500">{label}</label><span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold">{tuning[field]}</span></div><input type="range" min={min} max={max} value={tuning[field]} onChange={(event) => setTuning({ ...tuning, [field]: Number(event.target.value) })} className="w-full accent-emerald-900" /></div>)}</section>
-      <div className="mt-5 grid gap-2"><Button onClick={download} className="bg-emerald-950"><Download size={17} />Baixar PNG A4</Button><Button onClick={print} variant="outline"><Printer size={17} />Imprimir / salvar em PDF</Button><Button onClick={() => setTuning(defaults)} variant="outline"><RotateCcw size={17} />Restaurar ajustes</Button></div>
+      {templateError && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{templateError}</p>}
+      <div className="mt-5 grid gap-2"><Button onClick={download} disabled={!ready} className="bg-emerald-950"><Download size={17} />Baixar PNG A4</Button><Button onClick={print} disabled={!ready} variant="outline"><Printer size={17} />Imprimir / salvar em PDF</Button><Button onClick={() => setTuning(defaults)} variant="outline"><RotateCcw size={17} />Restaurar ajustes</Button></div>
     </Card>
-    <div className="rounded-2xl bg-slate-300 p-2 shadow-inner sm:p-4"><canvas id="prisma-canvas" ref={canvasRef} width={1240} height={1754} className="h-auto w-full bg-white shadow-xl" aria-label="Pré-visualização da folha A4 com prismas" /></div>
+    <div className="relative rounded-2xl bg-slate-950 p-2 shadow-inner sm:p-4"><canvas id="prisma-canvas" ref={canvasRef} width={1240} height={1754} className="h-auto w-full bg-white shadow-xl" aria-label="Pré-visualização da folha A4 com prismas" />{!ready && !templateError && <div role="status" className="absolute inset-2 grid place-items-center bg-white/90 text-center text-sm font-semibold text-slate-600 sm:inset-4">Carregando modelo do prisma...</div>}</div>
     <style jsx global>{`@media print { @page { size: A4; margin: 0; } body * { visibility: hidden !important; } #prisma-canvas { visibility: visible !important; position: fixed; inset: 0; width: 210mm !important; height: 297mm !important; box-shadow: none !important; } }`}</style>
   </div>;
 }

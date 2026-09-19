@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { internalEmailForWarName, normalizeWarName } from "@/lib/war-name";
+import { isDesignatedOwner, validateTemporaryAccess } from "@/lib/access-control";
 
 async function authorize() {
   const supabase = await createClient();
   if (!supabase) return null;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data } = await supabase.from("profiles").select("access_level,active").eq("id", user.id).single();
-  return data?.access_level === "owner" && data.active ? user : null;
+  const { data } = await supabase.from("profiles").select("access_level,active,email").eq("id", user.id).single();
+  return isDesignatedOwner(user.email, data) ? user : null;
 }
 
 function adminUnavailable() {
@@ -50,8 +51,8 @@ export async function POST(request: Request) {
   const warName = String(body.war_name || "").trim();
   const normalized = normalizeWarName(warName);
   const temporaryPassword = String(body.temporary_password || "");
-  if (warName.length < 2 || normalized.length < 2) return NextResponse.json({ error: "Informe um nome de guerra válido." }, { status: 400 });
-  if (temporaryPassword.length < 8) return NextResponse.json({ error: "A senha temporária deve ter pelo menos 8 caracteres." }, { status: 400 });
+  const validationError = validateTemporaryAccess(warName, temporaryPassword);
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
   const { data: existingProfiles } = await admin.from("profiles").select("war_name").neq("war_name", "");
   if (existingProfiles?.some((profile) => normalizeWarName(profile.war_name) === normalized)) return NextResponse.json({ error: "Esse nome de guerra já está em uso." }, { status: 409 });
 
@@ -87,4 +88,3 @@ export async function PATCH(request: Request) {
   await admin.from("audit_log").insert({ actor_id: owner.id, action: active ? "UPDATE" : "DEACTIVATE", entity_type: "profile", entity_id: id, details: { full_name: fullName, rank, active } });
   return NextResponse.json({ message: active ? "Perfil atualizado." : "Usuário desativado." });
 }
-

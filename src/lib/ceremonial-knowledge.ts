@@ -1,6 +1,9 @@
 import knowledge from "@/data/ceremonial-knowledge.json";
 
 export type KnowledgeSource = { id: string; documentId: string; source: string; page: number; content: string };
+export type KnowledgeDocument = { id: string; title: string; pages: number; fileName?: string; externalUrl?: string };
+
+const documents = knowledge.documents as KnowledgeDocument[];
 
 const stopWords = new Set(["a", "ao", "aos", "as", "com", "como", "da", "das", "de", "do", "dos", "e", "ela", "ele", "em", "eu", "fica", "ficam", "o", "os", "para", "por", "qual", "que", "se", "tem", "tenho", "um", "uma", "vai"]);
 
@@ -16,6 +19,11 @@ function queryTerms(question: string) {
   if (/bandeira|estandarte|simbolo/.test(normalized)) additions.push("guarda bandeira", "incorporacao", "entrada", "saida", "deslocamento", "posicao", "lado");
   if (/recepcao|despedida|honra/.test(normalized)) additions.push("honras", "recepcao", "despedida", "autoridade");
   if (/comando|passagem/.test(normalized)) additions.push("passagem comando", "substituido", "substituto", "dispositivo");
+  if (/uniforme|farda|traje/.test(normalized)) additions.push("uniforme", "uso", "composicao", "pecas", "agasalhos", "acessorios");
+  if (/insignia|distintivo/.test(normalized)) additions.push("insignias", "distintivos", "identificacao", "posicao", "uso");
+  if (/medalha|condecoracao|barreta/.test(normalized)) additions.push("condecoracoes", "medalhas", "barretas", "uso", "posicao");
+  if (/apresentacao|cabelo|barba|bigode|unha|maquiagem/.test(normalized)) additions.push("apresentacao pessoal", "padrao", "permitido", "proibido");
+  if (/defeso|eleitoral|eleicao|candidato|campanha politica/.test(normalized)) additions.push("defeso eleitoral", "publicidade institucional", "redes sociais", "campanha", "candidato", "periodo");
   return { normalized, originalTerms, terms: [...new Set([...originalTerms, ...additions.flatMap((item) => item.split(" "))])] };
 }
 
@@ -48,8 +56,8 @@ export function searchCeremonialKnowledge(question: string, limit = 8): Knowledg
   }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, limit).map(({ chunk }) => ({ id: chunk.id, documentId: chunk.documentId, source: chunk.source, page: chunk.page, content: chunk.content }));
 }
 
-export const ceremonialDocuments = knowledge.documents.map(({ id, title, pages }) => ({ id, title, pages }));
+export const ceremonialDocuments = documents.map(({ id, title, pages }) => ({ id, title, pages }));
 
 export function getCeremonialDocument(id: string) {
-  return knowledge.documents.find((document) => document.id === id);
+  return documents.find((document) => document.id === id);
 }
